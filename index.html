@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sistem Informasi Harga & Transaksi Tembakau - Kecamatan Pakong</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            tembakau: {
+              50: '#fdf8f0',
+              100: '#faedd7',
+              500: '#b45309',
+              600: '#92400e',
+              700: '#78350f',
+              800: '#451a03',
+              gold: '#d97706',
+              green: '#15803d'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Styling scrollbar halus dan mobile-friendly */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .badge-gunung { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .badge-tegal { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .badge-sawah { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 pb-20 md:pb-6 min-h-screen">
+
+  <!-- Header Atas -->
+  <header class="bg-tembakau-800 text-white sticky top-0 z-40 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <img src="/logo_etp.jpg" alt="Logo ETP" class="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-amber-300/80 bg-white object-contain shadow-sm">
+        <div>
+          <div class="flex items-center space-x-1.5">
+            <h1 class="text-lg md:text-xl font-bold tracking-tight leading-tight">ERP Tembakau Pakong</h1>
+            <span class="bg-amber-500/30 text-amber-200 text-[10px] px-1.5 py-0.5 rounded font-bold">ETP</span>
+          </div>
+          <p class="text-xs text-amber-200">Kecamatan Pakong - Kabupaten Pamekasan</p>
+        </div>
+      </div>
+      
+      <!-- Role Switcher & Profil Cepat -->
+      <div class="flex items-center space-x-2">
+        <div id="user-badge" class="hidden md:flex items-center space-x-2 bg-tembakau-700/80 px-3 py-1.5 rounded-full text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span id="nav-user-name" class="font-medium text-amber-100">Petani</span>
+          <span id="nav-user-role" class="bg-amber-500/30 px-1.5 py-0.5 rounded text-[10px] uppercase font-semibold">Petani</span>
+        </div>
+        <button onclick="openModalLogin()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-sm">
+          Ganti Akun / Masuk
+        </button>
+      </div>
+    </div>
+
+    <!-- Banner Info Akun Terpilih -->
+    <div id="active-session-banner" class="bg-amber-900/90 border-t border-amber-700/60 px-4 py-1.5 text-xs text-amber-100 flex items-center justify-between">
+      <div class="flex items-center space-x-1.5 truncate">
+        <span>👤 Masuk sebagai:</span>
+        <strong id="banner-user-name" class="text-white">Pak Slamet (Petani Cen Lecen)</strong>
+        <span id="banner-user-role" class="bg-amber-500 text-slate-900 text-[10px] px-1.5 py-0.2 rounded font-bold uppercase">Petani</span>
+      </div>
+      <div class="text-[11px] text-amber-300">
+        Kecamatan Pakong
+      </div>
+    </div>
+  </header>
+
+  <!-- Container Konten Utama -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 py-4">
+
+    <!-- Notifikasi & Alert Box -->
+    <div id="notif-ticker" class="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start space-x-3 shadow-sm">
+      <span class="text-xl">📢</span>
+      <div class="flex-1 text-xs sm:text-sm text-slate-700">
+        <p class="font-semibold text-amber-900" id="ticker-title">Pembaruan Harga Tembakau Pakong Terkini</p>
+        <p id="ticker-content" class="text-slate-600">Harga Grade Super A lahan Gunung di Cen Lecen berkisar Rp71.500 - Rp72.500/kg.</p>
+      </div>
+      <button onclick="loadNotifikasiModal()" class="text-xs text-amber-700 font-semibold underline whitespace-nowrap">Lihat Semua</button>
+    </div>
+
+    <!-- Navigasi Tab (Mobile & Desktop) -->
+    <div class="flex overflow-x-auto space-x-2 pb-2 mb-4 scrollbar-none border-b border-slate-200">
+      <button onclick="switchTab('harga')" id="tab-btn-harga" class="tab-button active px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap bg-tembakau-700 text-white shadow-sm">
+        📊 Informasi Harga
+      </button>
+      <button onclick="switchTab('pembanding')" id="tab-btn-pembanding" class="tab-button px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap bg-white text-slate-700 border hover:bg-slate-100">
+        ⚖️ Pembanding Acuan
+      </button>
+      <button onclick="switchTab('penawaran')" id="tab-btn-penawaran" class="tab-button px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap bg-white text-slate-700 border hover:bg-slate-100">
+        🤝 Penawaran & Pasar
+      </button>
+      <button onclick="switchTab('transaksi')" id="tab-btn-transaksi" class="tab-button px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap bg-white text-slate-700 border hover:bg-slate-100">
+        📝 Pencatatan Transaksi
+      </button>
+      <button onclick="switchTab('verifikasi')" id="tab-btn-verifikasi" class="tab-button px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap bg-white text-slate-700 border hover:bg-slate-100 relative">
+        🛡️ Verifikasi Poktan <span id="verif-badge" class="bg-red-500 text-white text-[10px] px-1.5 py-0.2 rounded-full ml-1">2</span>
+      </button>
+      <button onclick="switchTab('laporan')" id="tab-btn-laporan" class="tab-button px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap bg-white text-slate-700 border hover:bg-slate-100">
+        📈 Rekap & Laporan ERP
+      </button>
+    </div>
+
+    <!-- ================== TAB 1: INFORMASI HARGA ================== -->
+    <div id="tab-harga" class="tab-pane space-y-4">
+      <!-- Quick Action Buttons -->
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-base sm:text-lg font-bold text-slate-800">Harga Tembakau Terverifikasi Hari Ini</h2>
+        <div class="flex space-x-2">
+          <button onclick="openModalInputHarga()" class="bg-tembakau-green hover:bg-green-700 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg shadow flex items-center space-x-1">
+            <span>➕</span> <span>Lapor / Input Harga</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Pilih Desa di Pakong</label>
+          <select id="filter-desa" onchange="loadHarga()" class="w-full text-xs sm:text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-amber-500 outline-none">
+            <option value="">Semua Desa (Cen Lecen, Lebbek, Bicorong, dll)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Tipe Lahan</label>
+          <select id="filter-lahan" onchange="loadHarga()" class="w-full text-xs sm:text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-amber-500 outline-none">
+            <option value="">Semua Lahan (Gunung, Tegal, Sawah)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Grade Tembakau</label>
+          <select id="filter-grade" onchange="loadHarga()" class="w-full text-xs sm:text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-amber-500 outline-none">
+            <option value="">Semua Grade (Super A, A, B, C, D)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Kartu Harga Utama (Mobile First Card Design) -->
+      <div id="harga-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <!-- Dimuat lewat JS -->
+        <div class="text-center py-8 text-slate-400 col-span-full">Memuat data harga...</div>
+      </div>
+
+      <!-- Grafik Tren Harga Tembakau (Chart.js) -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mt-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-2">
+          <div>
+            <h3 class="font-bold text-slate-800 text-sm sm:text-base">Grafik Tren & Fluktuasi Harga Tembakau</h3>
+            <p class="text-xs text-slate-500">Perbandingan transmisi harga di Cen Lecen, Lebbek, dan Bicorong</p>
+          </div>
+          <span class="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded font-medium">Musim 2026</span>
+        </div>
+        <div class="h-64 sm:h-72 w-full">
+          <canvas id="hargaChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================== TAB 2: PEMBANDING HARGA ACUAN ================== -->
+    <div id="tab-pembanding" class="tab-pane hidden space-y-4">
+      <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl">
+        <h2 class="font-bold text-amber-950 text-base">Perbandingan Harga Lapangan vs Acuan Industri / Pabrikan</h2>
+        <p class="text-xs sm:text-sm text-amber-800 mt-1">
+          Modul ini membandingkan harga transaksi riil di tingkat petani Kecamatan Pakong dengan harga patokan resmi pabrikan (Gudang Garam, Djarum) & Dinas Perkebunan Pamekasan. Tujuannya memperkuat posisi tawar petani agar tidak terjebak harga rendah tengkulak.
+        </p>
+      </div>
+
+      <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200">
+        <table class="w-full text-left text-xs sm:text-sm">
+          <thead class="bg-slate-100 text-slate-600 uppercase text-[11px] font-semibold border-b">
+            <tr>
+              <th class="p-3">Grade & Tipe Lahan</th>
+              <th class="p-3">Harga Acuan Pabrikan</th>
+              <th class="p-3">Rata-rata Riil Pakong</th>
+              <th class="p-3">Selisih Margin</th>
+              <th class="p-3">Status Posisi Tawar</th>
+            </tr>
+          </thead>
+          <tbody id="pembanding-table-body" class="divide-y divide-slate-100">
+            <!-- Dimuat lewat JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================== TAB 3: PENAWARAN (MARKETPLACE MINI) ================== -->
+    <div id="tab-penawaran" class="tab-pane hidden space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-slate-800">Pasar Penawaran Tembakau Petani</h2>
+          <p class="text-xs text-slate-500">Petani memposting panen tembakau; pengepul & gudang dapat menawar langsung</p>
+        </div>
+        <button onclick="openModalBuatPenawaran()" class="bg-tembakau-600 hover:bg-tembakau-700 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg shadow flex items-center space-x-1">
+          <span>📢</span> <span>Pasang Penawaran Jual</span>
+        </button>
+      </div>
+
+      <div id="penawaran-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <!-- Dimuat lewat JS -->
+      </div>
+    </div>
+
+    <!-- ================== TAB 4: PENCATATAN TRANSAKSI ================== -->
+    <div id="tab-transaksi" class="tab-pane hidden space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-slate-800">Buku Transaksi Jual Beli Tembakau</h2>
+          <p class="text-xs text-slate-500">Pencatatan nota terstruktur antara petani dan pembeli/pengepul</p>
+        </div>
+        <button onclick="openModalCatatTransaksi()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg shadow flex items-center space-x-1">
+          <span>✍️</span> <span>Catat Transaksi Baru</span>
+        </button>
+      </div>
+
+      <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200">
+        <table class="w-full text-left text-xs sm:text-sm">
+          <thead class="bg-slate-100 text-slate-600 uppercase text-[11px] font-semibold border-b">
+            <tr>
+              <th class="p-3">Tanggal & Nota</th>
+              <th class="p-3">Penjual (Petani)</th>
+              <th class="p-3">Pembeli (Pengepul)</th>
+              <th class="p-3">Komoditas & Lokasi</th>
+              <th class="p-3 text-right">Berat (Kg)</th>
+              <th class="p-3 text-right">Harga / Kg</th>
+              <th class="p-3 text-right">Total Nilai</th>
+            </tr>
+          </thead>
+          <tbody id="transaksi-table-body" class="divide-y divide-slate-100">
+            <!-- Dimuat via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================== TAB 5: VERIFIKASI HARGA (POKTAN) ================== -->
+    <div id="tab-verifikasi" class="tab-pane hidden space-y-4">
+      <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl">
+        <div class="flex items-center space-x-2">
+          <span class="text-xl">🛡️</span>
+          <h2 class="font-bold text-blue-950 text-base">Pusat Verifikasi Harga Kelompok Tani (Poktan)</h2>
+        </div>
+        <p class="text-xs sm:text-sm text-blue-800 mt-1">
+          Sesuai rancangan sistem, data harga yang diinput tengkulak atau petani berstatus <em>menunggu</em> hingga diverifikasi oleh pengurus kelompok tani. Langkah ini penting agar informasi harga valid dan dapat dipercaya sebelum diterbitkan ke publik.
+        </p>
+      </div>
+
+      <div id="verifikasi-container" class="space-y-3">
+        <!-- Dimuat via JS -->
+      </div>
+    </div>
+
+    <!-- ================== TAB 6: REKAP & LAPORAN ERP ================== -->
+    <div id="tab-laporan" class="tab-pane hidden space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-base sm:text-lg font-bold text-slate-800">Laporan Rekapitulasi ERP Tembakau Pakong</h2>
+        <button onclick="cetakLaporan()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-lg flex items-center space-x-1">
+          <span>🖨️</span> <span>Cetak / Ekspor Laporan</span>
+        </button>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-xs text-slate-500">Total Transaksi</p>
+          <p id="stat-total-trx" class="text-lg sm:text-xl font-bold text-slate-800">0</p>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-xs text-slate-500">Volume Terjual</p>
+          <p id="stat-total-kg" class="text-lg sm:text-xl font-bold text-tembakau-700">0 Kg</p>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-xs text-slate-500">Total Perputaran Uang</p>
+          <p id="stat-total-omzet" class="text-base sm:text-lg font-bold text-emerald-700">Rp0</p>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-xs text-slate-500">Rata-rata Harga</p>
+          <p id="stat-rata-harga" class="text-base sm:text-lg font-bold text-amber-600">Rp0/Kg</p>
+        </div>
+      </div>
+
+      <!-- Rincian per Desa & Grade -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-slate-800 text-sm mb-2">Rekapitulasi per Desa di Pakong</h3>
+          <table class="w-full text-xs">
+            <thead class="bg-slate-50 border-b">
+              <tr>
+                <th class="p-2 text-left">Desa</th>
+                <th class="p-2 text-center">Jml Trx</th>
+                <th class="p-2 text-right">Volume</th>
+                <th class="p-2 text-right">Total Nilai</th>
+              </tr>
+            </thead>
+            <tbody id="rekap-desa-body" class="divide-y">
+            </tbody>
+          </table>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-slate-800 text-sm mb-2">Rekapitulasi per Grade Mutu</h3>
+          <table class="w-full text-xs">
+            <thead class="bg-slate-50 border-b">
+              <tr>
+                <th class="p-2 text-left">Grade</th>
+                <th class="p-2 text-right">Volume (Kg)</th>
+                <th class="p-2 text-right">Rata-rata Harga</th>
+              </tr>
+            </thead>
+            <tbody id="rekap-grade-body" class="divide-y">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================== MODALS ================== -->
+
+  <!-- Modal Pilih Akun / Demo Login -->
+  <div id="modal-login" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-slate-800 text-base">Pilih Akun Pengguna (Demo Sistem)</h3>
+        <button onclick="closeModalLogin()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <p class="text-xs text-slate-500">Pilih salah satu peran untuk menguji use case sesuai aktor pada Bab 2.1 rancangan:</p>
+      
+      <div id="user-selector-list" class="space-y-2 max-h-72 overflow-y-auto">
+        <!-- Diisi via JS -->
+      </div>
+      
+      <div class="pt-2 border-t flex justify-end">
+        <button onclick="closeModalLogin()" class="px-4 py-2 text-xs font-semibold bg-slate-200 text-slate-700 rounded-lg">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Input Harga Baru -->
+  <div id="modal-input-harga" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-slate-800 text-base">Lapor / Masukkan Data Harga Tembakau</h3>
+        <button onclick="closeModalInputHarga()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <form id="form-input-harga" onsubmit="submitHarga(event)" class="space-y-3 text-xs sm:text-sm">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Tanggal</label>
+          <input type="date" id="input-harga-tanggal" required class="w-full border rounded-lg p-2">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Desa di Pakong</label>
+            <select id="input-harga-desa" required class="w-full border rounded-lg p-2"></select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Tipe Lahan</label>
+            <select id="input-harga-lahan" required class="w-full border rounded-lg p-2"></select>
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Grade Tembakau</label>
+          <select id="input-harga-grade" required class="w-full border rounded-lg p-2"></select>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Harga Beli / Kg (Rp)</label>
+          <input type="number" id="input-harga-nominal" placeholder="Contoh: 70000" required min="10000" step="500" class="w-full border rounded-lg p-2">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Sumber Informasi / Lokasi</label>
+          <input type="text" id="input-harga-sumber" placeholder="Contoh: Transaksi Pengepul Munawir di Cen Lecen" required class="w-full border rounded-lg p-2">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
+          <textarea id="input-harga-catatan" rows="2" placeholder="Warna tembakau, aroma, kadar air..." class="w-full border rounded-lg p-2"></textarea>
+        </div>
+        <div class="pt-2 flex justify-end space-x-2">
+          <button type="button" onclick="closeModalInputHarga()" class="px-3 py-2 text-xs font-semibold bg-slate-200 rounded-lg">Batal</button>
+          <button type="submit" class="px-4 py-2 text-xs font-semibold bg-tembakau-green text-white rounded-lg">Kirim Laporan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Buat Penawaran Jual Petani -->
+  <div id="modal-buat-penawaran" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-slate-800 text-base">Pasang Penawaran Jual Tembakau</h3>
+        <button onclick="closeModalBuatPenawaran()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <form id="form-buat-penawaran" onsubmit="submitPenawaran(event)" class="space-y-3 text-xs sm:text-sm">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Lokasi Desa</label>
+            <select id="penawaran-desa" required class="w-full border rounded-lg p-2"></select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Tipe Lahan</label>
+            <select id="penawaran-lahan" required class="w-full border rounded-lg p-2"></select>
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Grade Mutu</label>
+          <select id="penawaran-grade" required class="w-full border rounded-lg p-2"></select>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Perkiraan Berat (Kg)</label>
+            <input type="number" id="penawaran-berat" placeholder="Contoh: 300" required min="1" step="0.5" class="w-full border rounded-lg p-2">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Harga Buka / Kg (Rp)</label>
+            <input type="number" id="penawaran-harga" placeholder="Contoh: 72000" required min="10000" step="500" class="w-full border rounded-lg p-2">
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Keterangan Kondisi Barang</label>
+          <textarea id="penawaran-ket" rows="2" placeholder="Jumlah keranjang, aroma wangi, sudah kering 3 hari..." class="w-full border rounded-lg p-2"></textarea>
+        </div>
+        <div class="pt-2 flex justify-end space-x-2">
+          <button type="button" onclick="closeModalBuatPenawaran()" class="px-3 py-2 text-xs font-semibold bg-slate-200 rounded-lg">Batal</button>
+          <button type="submit" class="px-4 py-2 text-xs font-semibold bg-tembakau-600 text-white rounded-lg">Terbitkan Penawaran</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Tanggapi / Nego Penawaran -->
+  <div id="modal-nego" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-slate-800 text-base">Ajukan Harga Beli / Tawar</h3>
+        <button onclick="closeModalNego()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <div id="nego-summary" class="bg-amber-50 p-2.5 rounded-lg text-xs text-amber-900 mb-2"></div>
+      <form id="form-nego" onsubmit="submitNego(event)" class="space-y-3 text-xs sm:text-sm">
+        <input type="hidden" id="nego-penawaran-id">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Harga Tawaran Anda / Kg (Rp)</label>
+          <input type="number" id="nego-harga" placeholder="Contoh: 70000" required min="10000" step="500" class="w-full border rounded-lg p-2 font-bold text-amber-700">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Pesan / Kesepakatan Angkut</label>
+          <textarea id="nego-pesan" rows="2" placeholder="Siap angkut besok pagi, timbang di tempat..." class="w-full border rounded-lg p-2"></textarea>
+        </div>
+        <div class="pt-2 flex justify-end space-x-2">
+          <button type="button" onclick="closeModalNego()" class="px-3 py-2 text-xs font-semibold bg-slate-200 rounded-lg">Batal</button>
+          <button type="submit" class="px-4 py-2 text-xs font-semibold bg-amber-600 text-white rounded-lg">Kirim Tawaran</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Catat Transaksi Baru -->
+  <div id="modal-catat-transaksi" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-slate-800 text-base">Catat Transaksi Penjualan Tembakau</h3>
+        <button onclick="closeModalCatatTransaksi()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <form id="form-catat-transaksi" onsubmit="submitTransaksi(event)" class="space-y-3 text-xs sm:text-sm">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Tanggal Transaksi</label>
+          <input type="date" id="trx-tanggal" required class="w-full border rounded-lg p-2">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Penjual (Petani)</label>
+            <select id="trx-penjual" required class="w-full border rounded-lg p-2"></select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Pembeli (Pengepul)</label>
+            <select id="trx-pembeli" required class="w-full border rounded-lg p-2"></select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Desa Lokasi</label>
+            <select id="trx-desa" required class="w-full border rounded-lg p-2"></select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Tipe Lahan</label>
+            <select id="trx-lahan" required class="w-full border rounded-lg p-2"></select>
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Grade Tembakau</label>
+          <select id="trx-grade" required class="w-full border rounded-lg p-2"></select>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Timbangan Berat (Kg)</label>
+            <input type="number" id="trx-berat" oninput="hitungTotalTrx()" placeholder="Contoh: 250" required min="1" step="0.5" class="w-full border rounded-lg p-2">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Harga Kesepakatan / Kg</label>
+            <input type="number" id="trx-harga" oninput="hitungTotalTrx()" placeholder="Contoh: 71000" required min="10000" step="500" class="w-full border rounded-lg p-2">
+          </div>
+        </div>
+        <div class="bg-slate-100 p-2.5 rounded-lg flex justify-between items-center">
+          <span class="font-semibold text-slate-700">Total Nilai Pembayaran:</span>
+          <span id="trx-total-display" class="font-bold text-tembakau-700 text-base">Rp0</span>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Catatan Transaksi</label>
+          <input type="text" id="trx-catatan" placeholder="Nomor keranjang, metode bayar (tunai/transfer)" class="w-full border rounded-lg p-2">
+        </div>
+        <div class="pt-2 flex justify-end space-x-2">
+          <button type="button" onclick="closeModalCatatTransaksi()" class="px-3 py-2 text-xs font-semibold bg-slate-200 rounded-lg">Batal</button>
+          <button type="submit" class="px-4 py-2 text-xs font-semibold bg-amber-600 text-white rounded-lg">Simpan Transaksi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Semua Notifikasi -->
+  <div id="modal-notifikasi" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-slate-800 text-base">Pusat Notifikasi & Informasi Pasar</h3>
+        <button onclick="closeNotifikasiModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <div id="notifikasi-list" class="space-y-2 max-h-80 overflow-y-auto">
+        <!-- Dimuat via JS -->
+      </div>
+      <div class="pt-2 flex justify-end">
+        <button onclick="closeNotifikasiModal()" class="px-3 py-1.5 text-xs font-semibold bg-slate-200 rounded-lg">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Mobile Navigation Bar -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 py-2 px-4 flex justify-around items-center z-30 shadow-lg text-[10px]">
+    <button onclick="switchTab('harga')" class="flex flex-col items-center text-tembakau-700 font-semibold focus:outline-none">
+      <span class="text-lg">📊</span>
+      <span>Harga</span>
+    </button>
+    <button onclick="switchTab('pembanding')" class="flex flex-col items-center text-slate-600 font-medium focus:outline-none">
+      <span class="text-lg">⚖️</span>
+      <span>Acuan</span>
+    </button>
+    <button onclick="switchTab('penawaran')" class="flex flex-col items-center text-slate-600 font-medium focus:outline-none">
+      <span class="text-lg">🤝</span>
+      <span>Pasar</span>
+    </button>
+    <button onclick="switchTab('transaksi')" class="flex flex-col items-center text-slate-600 font-medium focus:outline-none">
+      <span class="text-lg">📝</span>
+      <span>Nota</span>
+    </button>
+    <button onclick="switchTab('laporan')" class="flex flex-col items-center text-slate-600 font-medium focus:outline-none">
+      <span class="text-lg">📈</span>
+      <span>Rekap</span>
+    </button>
+  </nav>
+
+  <!-- JAVASCRIPT FRONTEND LOGIC -->
+  <script>
+    // State Aplikasi
+    let currentUser = {
+      id: 1,
+      nama: "Pak Slamet (Petani Cen Lecen)",
+      peran: "petani",
+      nomor_telepon: "08123456701",
+      desa_id: 1,
+      desa_nama: "Cen Lecen"
+    };
+
+    let referensi = { desa: [], tipe_lahan: [], grade: [] };
+    let allUsers = [];
+    let hargaChartInstance = null;
+
+    // Inisialisasi Saat Load
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Set input tanggal default ke hari ini
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('input-harga-tanggal').value = today;
+      document.getElementById('trx-tanggal').value = today;
+
+      await loadReferensi();
+      await loadPenggunaList();
+      await loadHarga();
+      await loadPembanding();
+      await loadPenawaran();
+      await loadTransaksi();
+      await loadVerifikasi();
+      await loadLaporan();
+      await loadNotifikasiSummary();
+      updateUserUI();
+    });
+
+    // 1. Ambil Referensi (Desa, Tipe Lahan, Grade)
+    async function loadReferensi() {
+      try {
+        const res = await fetch('/api/referensi');
+        referensi = await res.json();
+        
+        // Isi dropdown filter
+        populateSelect('filter-desa', referensi.desa, 'id', 'nama_desa', 'Semua Desa di Pakong');
+        populateSelect('filter-lahan', referensi.tipe_lahan, 'id', 'nama', 'Semua Tipe Lahan');
+        populateSelect('filter-grade', referensi.grade, 'id', 'nama_grade', 'Semua Grade');
+
+        // Isi form modal input harga
+        populateSelect('input-harga-desa', referensi.desa, 'id', 'nama_desa');
+        populateSelect('input-harga-lahan', referensi.tipe_lahan, 'id', 'nama');
+        populateSelect('input-harga-grade', referensi.grade, 'id', 'nama_grade');
+
+        // Isi form modal penawaran
+        populateSelect('penawaran-desa', referensi.desa, 'id', 'nama_desa');
+        populateSelect('penawaran-lahan', referensi.tipe_lahan, 'id', 'nama');
+        populateSelect('penawaran-grade', referensi.grade, 'id', 'nama_grade');
+
+        // Isi form modal transaksi
+        populateSelect('trx-desa', referensi.desa, 'id', 'nama_desa');
+        populateSelect('trx-lahan', referensi.tipe_lahan, 'id', 'nama');
+        populateSelect('trx-grade', referensi.grade, 'id', 'nama_grade');
+      } catch (err) {
+        console.error("Gagal memuat referensi:", err);
+      }
+    }
+
+    function populateSelect(elemId, data, valKey, labelKey, defaultOption = null) {
+      const el = document.getElementById(elemId);
+      if (!el) return;
+      el.innerHTML = defaultOption ? `<option value="">${defaultOption}</option>` : '';
+      data.forEach(item => {
+        el.innerHTML += `<option value="${item[valKey]}">${item[labelKey]}</option>`;
+      });
+    }
+
+    // 2. Daftar Pengguna & Demo Switcher
+    async function loadPenggunaList() {
+      try {
+        const res = await fetch('/api/pengguna');
+        allUsers = await res.json();
+        
+        // Isi selector pengguna di modal login
+        const listEl = document.getElementById('user-selector-list');
+        listEl.innerHTML = '';
+        allUsers.forEach(u => {
+          let roleBadge = 'bg-amber-100 text-amber-800';
+          if (u.peran === 'pengepul') roleBadge = 'bg-blue-100 text-blue-800';
+          if (u.peran === 'pengurus_poktan') roleBadge = 'bg-purple-100 text-purple-800';
+          if (u.peran === 'admin') roleBadge = 'bg-red-100 text-red-800';
+
+          listEl.innerHTML += `
+            <div onclick="selectUser(${u.id})" class="p-2.5 border rounded-xl hover:border-tembakau-600 hover:bg-amber-50 cursor-pointer flex items-center justify-between transition">
+              <div>
+                <p class="font-bold text-xs sm:text-sm text-slate-800">${u.nama}</p>
+                <p class="text-[11px] text-slate-500">${u.nama_desa || 'Kecamatan Pakong'} • Telp: ${u.nomor_telepon}</p>
+              </div>
+              <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${roleBadge}">${u.peran}</span>
+            </div>
+          `;
+        });
+
+        // Isi dropdown form transaksi
+        const penjualEl = document.getElementById('trx-penjual');
+        const pembeliEl = document.getElementById('trx-pembeli');
+        if (penjualEl && pembeliEl) {
+          penjualEl.innerHTML = '';
+          pembeliEl.innerHTML = '';
+          allUsers.forEach(u => {
+            penjualEl.innerHTML += `<option value="${u.id}">${u.nama} (${u.peran})</option>`;
+            pembeliEl.innerHTML += `<option value="${u.id}">${u.nama} (${u.peran})</option>`;
+          });
+          // Default: penjual pak slamet (1), pembeli munawir (3)
+          penjualEl.value = 1;
+          pembeliEl.value = 3;
+        }
+      } catch (err) {
+        console.error("Gagal memuat pengguna:", err);
+      }
+    }
+
+    function selectUser(userId) {
+      const u = allUsers.find(x => x.id === userId);
+      if (u) {
+        currentUser = {
+          id: u.id,
+          nama: u.nama,
+          peran: u.peran,
+          nomor_telepon: u.nomor_telepon,
+          desa_id: u.desa_id,
+          desa_nama: u.nama_desa
+        };
+        updateUserUI();
+        closeModalLogin();
+        loadTransaksi(); // reload data user
+        alert(`Beralih akun ke: ${u.nama} (${u.peran})`);
+      }
+    }
+
+    function updateUserUI() {
+      document.getElementById('nav-user-name').innerText = currentUser.nama;
+      document.getElementById('nav-user-role').innerText = currentUser.peran;
+      document.getElementById('banner-user-name').innerText = currentUser.nama;
+      document.getElementById('banner-user-role').innerText = currentUser.peran;
+    }
+
+    // 3. Tab Navigation
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('bg-tembakau-700', 'text-white', 'shadow-sm');
+        btn.classList.add('bg-white', 'text-slate-700');
+      });
+
+      const targetPane = document.getElementById(`tab-${tabId}`);
+      const targetBtn = document.getElementById(`tab-btn-${tabId}`);
+      if (targetPane) targetPane.classList.remove('hidden');
+      if (targetBtn) {
+        targetBtn.classList.remove('bg-white', 'text-slate-700');
+        targetBtn.classList.add('bg-tembakau-700', 'text-white', 'shadow-sm');
+      }
+
+      if (tabId === 'harga') {
+        setTimeout(renderChart, 100);
+      }
+    }
+
+    // 4. Modul Informasi Harga
+    async function loadHarga() {
+      const desaId = document.getElementById('filter-desa').value;
+      const lahanId = document.getElementById('filter-lahan').value;
+      const gradeId = document.getElementById('filter-grade').value;
+
+      let url = '/api/harga/terbaru?';
+      if (desaId) url += `desa_id=${desaId}&`;
+      if (lahanId) url += `tipe_lahan_id=${lahanId}&`;
+      if (gradeId) url += `grade_id=${gradeId}&`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const container = document.getElementById('harga-cards-container');
+
+        if (data.length === 0) {
+          container.innerHTML = '<div class="col-span-full py-8 text-center text-slate-400 bg-white rounded-xl border">Tidak ada catatan harga untuk filter yang dipilih.</div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        data.forEach(item => {
+          let badgeLahanClass = 'badge-tegal';
+          if (item.nama_lahan === 'Gunung') badgeLahanClass = 'badge-gunung';
+          if (item.nama_lahan === 'Sawah') badgeLahanClass = 'badge-sawah';
+
+          container.innerHTML += `
+            <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow transition">
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <span class="text-[11px] font-bold px-2 py-0.5 rounded-full ${badgeLahanClass}">
+                    Lahan ${item.nama_lahan}
+                  </span>
+                  <h4 class="font-bold text-slate-800 text-sm mt-1.5">${item.nama_grade}</h4>
+                </div>
+                <span class="text-xs text-slate-400">${item.tanggal}</span>
+              </div>
+
+              <div class="my-3">
+                <span class="text-xs text-slate-500">Harga Terverifikasi:</span>
+                <p class="text-xl sm:text-2xl font-extrabold text-tembakau-700">
+                  Rp${item.harga_per_kg.toLocaleString('id-ID')}<span class="text-xs font-normal text-slate-500">/Kg</span>
+                </p>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100 text-xs text-slate-600 space-y-1">
+                <div class="flex justify-between">
+                  <span>📍 Lokasi:</span>
+                  <span class="font-semibold text-slate-800">Desa ${item.nama_desa}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>🔍 Sumber:</span>
+                  <span class="truncate ml-2 text-slate-700" title="${item.sumber}">${item.sumber}</span>
+                </div>
+                <div class="flex justify-between text-[11px] text-slate-400">
+                  <span>Diverifikasi oleh:</span>
+                  <span>${item.nama_verifikator || 'Pengurus Poktan'}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        renderChart(data);
+      } catch (err) {
+        console.error("Gagal load harga:", err);
+      }
+    }
+
+    // Render Tren Harga Chart.js
+    function renderChart(data = []) {
+      const ctx = document.getElementById('hargaChart');
+      if (!ctx) return;
+
+      if (hargaChartInstance) {
+        hargaChartInstance.destroy();
+      }
+
+      // Format data per desa (Cen Lecen, Lebbek, Bicorong)
+      const labels = ['10 Ags', '15 Ags', '20 Ags', '22 Ags', '24 Ags'];
+      
+      hargaChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Cen Lecen (Transmisi: 1.120)',
+              data: [68000, 70000, 71500, 72000, 72500],
+              borderColor: '#b45309',
+              backgroundColor: 'rgba(180, 83, 9, 0.1)',
+              tension: 0.3,
+              fill: true,
+              borderWidth: 2
+            },
+            {
+              label: 'Lebbek (Transmisi: 0.405)',
+              data: [64000, 65000, 66000, 66000, 67000],
+              borderColor: '#0284c7',
+              backgroundColor: 'rgba(2, 132, 199, 0.05)',
+              tension: 0.3,
+              borderWidth: 2
+            },
+            {
+              label: 'Bicorong (Transmisi: 0.135)',
+              data: [58000, 59000, 59500, 59500, 60000],
+              borderColor: '#16a34a',
+              backgroundColor: 'rgba(22, 163, 74, 0.05)',
+              tension: 0.3,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { font: { size: 11 }, boxWidth: 12 }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + ': Rp' + context.raw.toLocaleString('id-ID') + '/Kg';
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              ticks: {
+                callback: function(val) {
+                  return 'Rp' + (val / 1000) + 'k';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 5. Modul Pembanding Harga
+    async function loadPembanding() {
+      try {
+        const res = await fetch('/api/harga/pembanding');
+        const data = await res.json();
+        const tbody = document.getElementById('pembanding-table-body');
+        tbody.innerHTML = '';
+
+        data.forEach(item => {
+          let marginColor = 'text-emerald-600 bg-emerald-50';
+          let statusText = 'Harga di atas acuan';
+          if (item.selisih < 0) {
+            marginColor = 'text-red-600 bg-red-50';
+            statusText = 'Di bawah acuan pabrikan';
+          } else if (item.selisih === 0 || !item.selisih) {
+            marginColor = 'text-slate-600 bg-slate-50';
+            statusText = 'Sesuai patokan';
+          }
+
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-semibold text-slate-800">
+                ${item.nama_grade}
+                <span class="block text-[11px] text-slate-500 font-normal">Lahan ${item.nama_lahan}</span>
+              </td>
+              <td class="p-3">
+                <span class="font-bold text-slate-700">Rp${item.harga_acuan.toLocaleString('id-ID')}</span>
+                <span class="block text-[10px] text-slate-400">${item.sumber_acuan}</span>
+              </td>
+              <td class="p-3 font-bold text-tembakau-700">
+                ${item.rata_lokal ? 'Rp' + item.rata_lokal.toLocaleString('id-ID') : 'Belum ada data'}
+              </td>
+              <td class="p-3">
+                ${item.selisih ? `
+                  <span class="px-2 py-0.5 rounded font-bold ${marginColor}">
+                    ${item.selisih > 0 ? '+' : ''}Rp${item.selisih.toLocaleString('id-ID')} (${item.persentase}%)
+                  </span>
+                ` : '-'}
+              </td>
+              <td class="p-3">
+                <span class="text-xs font-medium text-slate-700">${statusText}</span>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error("Gagal load pembanding:", err);
+      }
+    }
+
+    // 6. Modul Penawaran Petani
+    async function loadPenawaran() {
+      try {
+        const res = await fetch('/api/penawaran');
+        const data = await res.json();
+        const container = document.getElementById('penawaran-container');
+        container.innerHTML = '';
+
+        data.forEach(item => {
+          let statusBadge = 'bg-emerald-100 text-emerald-800';
+          if (item.status === 'ditawar') statusBadge = 'bg-amber-100 text-amber-800';
+          if (item.status === 'selesai') statusBadge = 'bg-slate-100 text-slate-600';
+
+          container.innerHTML += `
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <div class="flex justify-between items-start mb-2">
+                  <span class="text-xs font-bold text-slate-700">📦 ${item.berat_kg} Kg Tembakau</span>
+                  <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${statusBadge}">${item.status}</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-base">${item.nama_grade} (Lahan ${item.nama_lahan})</h4>
+                <p class="text-xs text-slate-500 mb-2">📍 Desa ${item.nama_desa} • Petani: ${item.pemosting_nama}</p>
+                
+                <div class="bg-amber-50 p-2.5 rounded-lg mb-3">
+                  <span class="text-xs text-amber-900 font-medium">Harga Diminta Petani:</span>
+                  <p class="text-lg font-extrabold text-amber-800">Rp${item.harga_diminta.toLocaleString('id-ID')} / Kg</p>
+                  <p class="text-[11px] text-slate-600 mt-1 italic">"${item.keterangan || 'Tidak ada catatan'}"</p>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span class="text-xs text-slate-400">${item.total_tanggapan} Tawaran Masuk</span>
+                <button onclick="openModalNego(${item.id}, '${item.pemosting_nama}', ${item.berat_kg}, ${item.harga_diminta})" 
+                        class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm">
+                  🤝 Ajukan Tawaran Beli
+                </button>
+              </div>
+            </div>
+          `;
+        });
+      } catch (err) {
+        console.error("Gagal load penawaran:", err);
+      }
+    }
+
+    // 7. Modul Pencatatan Transaksi
+    async function loadTransaksi() {
+      try {
+        const res = await fetch('/api/transaksi');
+        const data = await res.json();
+        const tbody = document.getElementById('transaksi-table-body');
+        tbody.innerHTML = '';
+
+        data.forEach(item => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+              <td class="p-3">
+                <span class="font-bold text-slate-800">#TRX-${item.id}</span>
+                <span class="block text-[11px] text-slate-400">${item.tanggal}</span>
+              </td>
+              <td class="p-3">
+                <span class="font-semibold text-slate-800">${item.penjual_nama}</span>
+                <span class="block text-[11px] text-slate-400">${item.penjual_telp}</span>
+              </td>
+              <td class="p-3">
+                <span class="font-semibold text-slate-800">${item.pembeli_nama}</span>
+                <span class="block text-[11px] text-slate-400">${item.pembeli_telp}</span>
+              </td>
+              <td class="p-3">
+                <span class="font-medium text-slate-700">${item.nama_grade}</span>
+                <span class="block text-[11px] text-slate-500">${item.nama_lahan} - ${item.nama_desa}</span>
+              </td>
+              <td class="p-3 text-right font-semibold">${item.berat_kg} Kg</td>
+              <td class="p-3 text-right text-tembakau-700 font-bold">Rp${item.harga_per_kg.toLocaleString('id-ID')}</td>
+              <td class="p-3 text-right font-extrabold text-emerald-700">Rp${item.total.toLocaleString('id-ID')}</td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error("Gagal load transaksi:", err);
+      }
+    }
+
+    // 8. Modul Verifikasi Harga Poktan
+    async function loadVerifikasi() {
+      try {
+        const res = await fetch('/api/harga/menunggu-verifikasi');
+        const data = await res.json();
+        const container = document.getElementById('verifikasi-container');
+        const badge = document.getElementById('verif-badge');
+        badge.innerText = data.length;
+
+        if (data.length === 0) {
+          container.innerHTML = '<div class="p-8 text-center bg-white rounded-xl border text-slate-400">Tidak ada laporan harga yang menunggu verifikasi saat ini. Semua data valid.</div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        data.forEach(item => {
+          container.innerHTML += `
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div class="flex items-center space-x-2">
+                  <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Menunggu Validasi</span>
+                  <span class="text-xs text-slate-400">${item.tanggal}</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-base mt-1">
+                  Rp${item.harga_per_kg.toLocaleString('id-ID')}/Kg — ${item.nama_grade} (Lahan ${item.nama_lahan})
+                </h4>
+                <p class="text-xs text-slate-600 mt-0.5">
+                  📍 Desa ${item.nama_desa} • Pelapor: <strong>${item.nama_pelapor}</strong> (${item.peran_pelapor})
+                </p>
+                <p class="text-xs text-slate-500 italic mt-1">Sumber: "${item.sumber}"</p>
+              </div>
+
+              <div class="flex space-x-2 self-end sm:self-center">
+                <button onclick="prosesVerifikasi(${item.id}, 'ditolak')" class="px-3 py-1.5 text-xs font-semibold bg-red-100 text-red-700 hover:bg-red-200 rounded-lg">
+                  ❌ Tolak
+                </button>
+                <button onclick="prosesVerifikasi(${item.id}, 'disetujui')" class="px-4 py-1.5 text-xs font-semibold bg-tembakau-green text-white hover:bg-green-700 rounded-lg shadow">
+                  ✅ Setujui & Terbitkan
+                </button>
+              </div>
+            </div>
+          `;
+        });
+      } catch (err) {
+        console.error("Gagal load verifikasi:", err);
+      }
+    }
+
+    async function prosesVerifikasi(hargaId, status) {
+      try {
+        const res = await fetch('/api/harga/verifikasi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            harga_id: hargaId,
+            pengurus_id: currentUser.id,
+            status: status
+          })
+        });
+        const result = await res.json();
+        alert(result.message);
+        await loadVerifikasi();
+        await loadHarga();
+        await loadPembanding();
+        await loadNotifikasiSummary();
+      } catch (err) {
+        alert("Gagal memproses verifikasi");
+      }
+    }
+
+    // 9. Modul Laporan & Rekap ERP
+    async function loadLaporan() {
+      try {
+        const res = await fetch('/api/laporan/ringkasan');
+        const data = await res.json();
+        
+        // Stat Cards
+        document.getElementById('stat-total-trx').innerText = data.transaksi_umum.total_trx || 0;
+        document.getElementById('stat-total-kg').innerText = (data.transaksi_umum.total_kg || 0).toLocaleString('id-ID') + ' Kg';
+        document.getElementById('stat-total-omzet').innerText = 'Rp' + (data.transaksi_umum.total_omzet || 0).toLocaleString('id-ID');
+        document.getElementById('stat-rata-harga').innerText = 'Rp' + Math.round(data.transaksi_umum.rata_harga || 0).toLocaleString('id-ID') + '/Kg';
+
+        // Rekap Desa
+        const desaBody = document.getElementById('rekap-desa-body');
+        desaBody.innerHTML = '';
+        data.per_desa.forEach(d => {
+          desaBody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+              <td class="p-2 font-medium text-slate-800">${d.nama_desa}</td>
+              <td class="p-2 text-center">${d.jml_trx || 0}</td>
+              <td class="p-2 text-right">${(d.total_kg || 0).toLocaleString('id-ID')} Kg</td>
+              <td class="p-2 text-right font-bold text-slate-700">Rp${(d.total_nilai || 0).toLocaleString('id-ID')}</td>
+            </tr>
+          `;
+        });
+
+        // Rekap Grade
+        const gradeBody = document.getElementById('rekap-grade-body');
+        gradeBody.innerHTML = '';
+        data.per_grade.forEach(g => {
+          gradeBody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+              <td class="p-2 font-medium text-slate-800">${g.nama_grade}</td>
+              <td class="p-2 text-right">${(g.total_kg || 0).toLocaleString('id-ID')} Kg</td>
+              <td class="p-2 text-right font-bold text-tembakau-700">Rp${Math.round(g.rata_harga || 0).toLocaleString('id-ID')}</td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error("Gagal load laporan:", err);
+      }
+    }
+
+    // 10. Modul Notifikasi
+    async function loadNotifikasiSummary() {
+      try {
+        const res = await fetch(`/api/notifikasi?user_id=${currentUser.id}`);
+        const data = await res.json();
+        if (data.length > 0) {
+          document.getElementById('ticker-title').innerText = data[0].judul;
+          document.getElementById('ticker-content').innerText = data[0].isi;
+        }
+
+        const listEl = document.getElementById('notifikasi-list');
+        listEl.innerHTML = '';
+        data.forEach(n => {
+          listEl.innerHTML += `
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-xs text-slate-800">${n.judul}</span>
+                <span class="text-[10px] text-slate-400">${n.waktu}</span>
+              </div>
+              <p class="text-xs text-slate-600">${n.isi}</p>
+            </div>
+          `;
+        });
+      } catch (err) {
+        console.error("Gagal load notifikasi:", err);
+      }
+    }
+
+    // Form Submissions
+    async function submitHarga(e) {
+      e.preventDefault();
+      const payload = {
+        tanggal: document.getElementById('input-harga-tanggal').value,
+        desa_id: parseInt(document.getElementById('input-harga-desa').value),
+        tipe_lahan_id: parseInt(document.getElementById('input-harga-lahan').value),
+        grade_id: parseInt(document.getElementById('input-harga-grade').value),
+        harga_per_kg: parseFloat(document.getElementById('input-harga-nominal').value),
+        sumber: document.getElementById('input-harga-sumber').value,
+        pelapor_id: currentUser.id,
+        catatan: document.getElementById('input-harga-catatan').value
+      };
+
+      try {
+        const res = await fetch('/api/harga/input', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        alert(data.message);
+        closeModalInputHarga();
+        await loadVerifikasi();
+        await loadNotifikasiSummary();
+      } catch (err) {
+        alert("Gagal mengirim laporan harga");
+      }
+    }
+
+    async function submitPenawaran(e) {
+      e.preventDefault();
+      const payload = {
+        pemosting_id: currentUser.id,
+        desa_id: parseInt(document.getElementById('penawaran-desa').value),
+        tipe_lahan_id: parseInt(document.getElementById('penawaran-lahan').value),
+        grade_id: parseInt(document.getElementById('penawaran-grade').value),
+        berat_kg: parseFloat(document.getElementById('penawaran-berat').value),
+        harga_diminta: parseFloat(document.getElementById('penawaran-harga').value),
+        keterangan: document.getElementById('penawaran-ket').value
+      };
+
+      try {
+        const res = await fetch('/api/penawaran/buat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        alert(data.message);
+        closeModalBuatPenawaran();
+        await loadPenawaran();
+        await loadNotifikasiSummary();
+      } catch (err) {
+        alert("Gagal memposting penawaran");
+      }
+    }
+
+    async function submitNego(e) {
+      e.preventDefault();
+      const payload = {
+        penawaran_id: parseInt(document.getElementById('nego-penawaran-id').value),
+        penanggap_id: currentUser.id,
+        harga_tawar: parseFloat(document.getElementById('nego-harga').value),
+        pesan: document.getElementById('nego-pesan').value
+      };
+
+      try {
+        const res = await fetch('/api/penawaran/tanggapi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        alert(data.message);
+        closeModalNego();
+        await loadPenawaran();
+        await loadNotifikasiSummary();
+      } catch (err) {
+        alert("Gagal mengirim tanggapan");
+      }
+    }
+
+    function hitungTotalTrx() {
+      const b = parseFloat(document.getElementById('trx-berat').value) || 0;
+      const h = parseFloat(document.getElementById('trx-harga').value) || 0;
+      const total = b * h;
+      document.getElementById('trx-total-display').innerText = 'Rp' + total.toLocaleString('id-ID');
+    }
+
+    async function submitTransaksi(e) {
+      e.preventDefault();
+      const payload = {
+        tanggal: document.getElementById('trx-tanggal').value,
+        penjual_id: parseInt(document.getElementById('trx-penjual').value),
+        pembeli_id: parseInt(document.getElementById('trx-pembeli').value),
+        desa_id: parseInt(document.getElementById('trx-desa').value),
+        tipe_lahan_id: parseInt(document.getElementById('trx-lahan').value),
+        grade_id: parseInt(document.getElementById('trx-grade').value),
+        berat_kg: parseFloat(document.getElementById('trx-berat').value),
+        harga_per_kg: parseFloat(document.getElementById('trx-harga').value),
+        catatan: document.getElementById('trx-catatan').value
+      };
+
+      try {
+        const res = await fetch('/api/transaksi/catat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        alert(`Transaksi tersimpan! Total: Rp${data.total.toLocaleString('id-ID')}`);
+        closeModalCatatTransaksi();
+        await loadTransaksi();
+        await loadLaporan();
+        await loadNotifikasiSummary();
+      } catch (err) {
+        alert("Gagal mencatat transaksi");
+      }
+    }
+
+    function cetakLaporan() {
+      window.print();
+    }
+
+    // Modal Helpers
+    function openModalLogin() { document.getElementById('modal-login').classList.remove('hidden'); }
+    function closeModalLogin() { document.getElementById('modal-login').classList.add('hidden'); }
+    function openModalInputHarga() { document.getElementById('modal-input-harga').classList.remove('hidden'); }
+    function closeModalInputHarga() { document.getElementById('modal-input-harga').classList.add('hidden'); }
+    function openModalBuatPenawaran() { document.getElementById('modal-buat-penawaran').classList.remove('hidden'); }
+    function closeModalBuatPenawaran() { document.getElementById('modal-buat-penawaran').classList.add('hidden'); }
+    function openModalCatatTransaksi() { document.getElementById('modal-catat-transaksi').classList.remove('hidden'); }
+    function closeModalCatatTransaksi() { document.getElementById('modal-catat-transaksi').classList.add('hidden'); }
+    function loadNotifikasiModal() { document.getElementById('modal-notifikasi').classList.remove('hidden'); }
+    function closeNotifikasiModal() { document.getElementById('modal-notifikasi').classList.add('hidden'); }
+
+    function openModalNego(penawaranId, pemosting, berat, hargaDiminta) {
+      document.getElementById('nego-penawaran-id').value = penawaranId;
+      document.getElementById('nego-summary').innerHTML = `
+        <strong>Petani:</strong> ${pemosting} | <strong>Berat:</strong> ${berat} Kg | <strong>Harga Diminta:</strong> Rp${hargaDiminta.toLocaleString('id-ID')}/Kg
+      `;
+      document.getElementById('modal-nego').classList.remove('hidden');
+    }
+    function closeModalNego() { document.getElementById('modal-nego').classList.add('hidden'); }
+  </script>
+</body>
+</html>
